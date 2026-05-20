@@ -1,26 +1,48 @@
-export function Icon({ name }: { name: "play" | "spark" | "heart" | "share" | "bookmark" | "film" | "chat" | "send" | "x" | "sound" | "mute" }) {
+import {
+  Play,
+  Sparkles,
+  Heart,
+  Share2,
+  Bookmark,
+  Film,
+  MessageCircle,
+  Send,
+  X,
+  Volume2,
+  VolumeX,
+} from "lucide-react";
+
+export function Icon({
+  name,
+}: {
+  name: "play" | "spark" | "heart" | "share" | "bookmark" | "film" | "chat" | "send" | "x" | "sound" | "mute";
+}) {
   const common = "h-5 w-5";
-  if (name === "play") return <span className={common}>▶</span>;
-  if (name === "spark") return <span className={common}>✦</span>;
-  if (name === "heart") return <span className={common}>♡</span>;
-  if (name === "share") return <span className={common}>↗</span>;
-  if (name === "bookmark") return <span className={common}>⌑</span>;
-  if (name === "chat") return <span className={common}>◐</span>;
-  if (name === "send") return <span className={common}>➤</span>;
-  if (name === "x") return <span className={common}>×</span>;
-  if (name === "sound") {
-    return (
-      <svg className={common} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
-      </svg>
-    );
+  
+  switch (name) {
+    case "play":
+      return <Play className={common} />;
+    case "spark":
+      return <Sparkles className={common} />;
+    case "heart":
+      return <Heart className={common} />;
+    case "share":
+      return <Share2 className={common} />;
+    case "bookmark":
+      return <Bookmark className={common} />;
+    case "film":
+      return <Film className={common} />;
+    case "chat":
+      return <MessageCircle className={common} />;
+    case "send":
+      return <Send className={common} />;
+    case "x":
+      return <X className={common} />;
+    case "sound":
+      return <Volume2 className={common} />;
+    case "mute":
+      return <VolumeX className={common} />;
+    default:
+      return null;
   }
-  if (name === "mute") {
-    return (
-      <svg className={common} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75 19.5 12m0 0 2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6 4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
-      </svg>
-    );
-  }
-  return <span className={common}>▰</span>;
 }
