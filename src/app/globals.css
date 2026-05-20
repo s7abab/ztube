@@ -239,3 +239,30 @@ video {
     transition-duration: 1ms !important;
   }
 }
+
+.reel-video {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border: 0;
+  opacity: 1;
+}
+
+@media (max-aspect-ratio: 16/9) {
+  .reel-video {
+    width: calc(58svh * 16 / 9) !important;
+    height: 58svh !important;
+    min-width: unset !important;
+    min-height: unset !important;
+  }
+}
+
+@media (min-aspect-ratio: 16/9) {
+  .reel-video {
+    width: 100vw !important;
+    height: 56.25vw !important;
+    min-height: 100vh !important;
+    min-width: 177.78vh !important;
+  }
+}

@@ -53,7 +53,7 @@ export function ReelsFeed(props: ReelsFeedProps) {
                 fill
                 priority={index === 0}
                 sizes="100vw"
-                className="scale-105 object-cover opacity-65 blur-sm"
+                className="scale-105 object-cover opacity-50 blur-sm"
               />
             </div>
             {movie.trailerKey && props.active === index && !props.watching ? (
@@ -62,14 +62,14 @@ export function ReelsFeed(props: ReelsFeedProps) {
                 src={`https://www.youtube.com/embed/${movie.trailerKey}?autoplay=1&mute=${props.soundOn ? "0" : "1"}&controls=0&loop=1&playlist=${movie.trailerKey}&playsinline=1&rel=0&modestbranding=1`}
                 title={`${movie.title} trailer reel`}
                 allow="autoplay; encrypted-media; picture-in-picture"
-                className="pointer-events-none absolute left-1/2 top-1/2 h-[120svh] w-[213svh] min-h-full min-w-full -translate-x-1/2 -translate-y-1/2 border-0 opacity-100"
+                className="pointer-events-none reel-video"
               />
             ) : !movie.trailerKey ? (
               <video
                 ref={(node) => {
                   props.videoRefs.current[index] = node;
                 }}
-                className="absolute inset-0 h-full w-full scale-105 object-cover transition duration-700"
+                className="reel-video transition duration-700 object-contain"
                 src={movie.trailer}
                 poster={movie.backdrop}
                 muted={!props.soundOn}
