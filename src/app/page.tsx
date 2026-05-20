@@ -255,6 +255,39 @@ async function hydrateTmdbMovies(movies: TmdbMovie[], token: string, offset = 0,
     .filter((movie) => !requireTrailer || movie.trailerKey);
 }
 
+function mapBasicTmdbMovie(movie: TmdbMovie, index: number): Movie {
+  const genres =
+    movie.genre_ids
+      ?.map((id) => tmdbGenreMap.get(id))
+      .filter((genre): genre is string => Boolean(genre))
+      .slice(0, 3) || [];
+  const title = movie.title || movie.name || "Untitled";
+  const year = (movie.release_date || movie.first_air_date || "2026").slice(0, 4);
+
+  const mappedMovie = {
+    id: movie.id,
+    title,
+    year,
+    genres: genres.length ? genres : ["Cinema"],
+    rating: (movie.vote_average || 0).toFixed(1),
+    popularity: (movie.popularity || 0).toFixed(1),
+    hook: "",
+    description: movie.overview || "TMDB has not published a synopsis for this title yet.",
+    poster: posterUrl(movie.poster_path),
+    backdrop: backdropUrl(movie.backdrop_path),
+    trailer: sampleTrailers[index % sampleTrailers.length],
+    trailerKey: undefined,
+    providers: ["TMDB watchlist", "Trailer vibe", "Rental"],
+    cast: [],
+    why: `This lands because it blends ${genres.slice(0, 2).join(" and ") || "cinematic"} energy with strong audience momentum.`,
+    similar: [],
+  };
+  return {
+    ...mappedMovie,
+    hook: buildHook(mappedMovie),
+  };
+}
+
 const prompts = [
   "Mind bending sci-fi",
   "Movies like Interstellar",
@@ -305,8 +338,36 @@ export default function Home() {
   const [thinking, setThinking] = useState(false);
   const [liveSuggestions, setLiveSuggestions] = useState<Movie[]>([]);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [isOpeningDetails, setIsOpeningDetails] = useState(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const loadingMoreRef = useRef(false);
+
+  const openDetails = useCallback(async (movie: Movie) => {
+    if (movie.cast.length > 0) {
+      setSelected(movie);
+      return;
+    }
+    const token = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+    if (!token) {
+      setSelected(movie);
+      return;
+    }
+    setIsOpeningDetails(true);
+    try {
+      const detail = await tmdbFetch<TmdbMovieDetail>(
+        `/movie/${movie.id}?language=en-US&append_to_response=videos,credits,watch/providers,similar`,
+        token,
+      );
+      const fullMovie = mapTmdbMovie(detail, 0);
+      fullMovie.trailer = movie.trailer; // preserve original fallback trailer
+      setSelected(fullMovie);
+    } catch (error) {
+      console.error("Failed to load details:", error);
+      setSelected(movie);
+    } finally {
+      setIsOpeningDetails(false);
+    }
+  }, []);
 
   const loadTmdbReelsPage = useCallback(
     async (page: number, mode: "replace" | "append") => {
@@ -387,7 +448,31 @@ export default function Home() {
         video.pause();
       }
     });
-  }, [active, tab, watching]);
+
+    // Lazy hydrate active reel
+    const currentMovie = movies[active];
+    if (tab === "reels" && currentMovie && currentMovie.cast.length === 0) {
+      const token = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+      if (token) {
+        tmdbFetch<TmdbMovieDetail>(
+          `/movie/${currentMovie.id}?language=en-US&append_to_response=videos,credits,watch/providers,similar`,
+          token,
+        )
+          .then((detail) => {
+            const fullMovie = mapTmdbMovie(detail, active);
+            fullMovie.trailer = currentMovie.trailer;
+            setMovies((current) => {
+              const next = [...current];
+              if (next[active]?.id === fullMovie.id) {
+                next[active] = fullMovie;
+              }
+              return next;
+            });
+          })
+          .catch(() => undefined);
+      }
+    }
+  }, [active, tab, watching, movies]);
 
   useEffect(() => {
     const token = process.env.NEXT_PUBLIC_TMDB_API_KEY;
@@ -409,7 +494,10 @@ export default function Home() {
           `/search/movie?query=${encodeURIComponent(query)}&include_adult=false&language=en-US&page=1`,
           token,
         );
-        const suggestions = await hydrateTmdbMovies(search.results.slice(0, 5), token, 0, false);
+        const suggestions = search.results
+          .filter((m) => m.poster_path && m.backdrop_path)
+          .slice(0, 5)
+          .map((m, index) => mapBasicTmdbMovie(m, index));
         if (!cancelled) {
           setLiveSuggestions(suggestions);
         }
@@ -447,7 +535,10 @@ export default function Home() {
           `/search/movie?query=${encodeURIComponent(text)}&include_adult=false&language=en-US&page=1`,
           token,
         );
-        const detailedMovies = await hydrateTmdbMovies(search.results, token, 0, false);
+        const detailedMovies = search.results
+          .filter((m) => m.poster_path && m.backdrop_path)
+          .slice(0, 20)
+          .map((m, index) => mapBasicTmdbMovie(m, index));
         if (detailedMovies.length) {
           setMovies(detailedMovies);
           setGptSuggestions(detailedMovies.slice(0, 6));
@@ -546,7 +637,7 @@ export default function Home() {
                   <h1 className="mt-1 text-2xl font-black tracking-tight">ztube</h1>
                 </div>
                 <button
-                  onClick={() => setSelected(movie)}
+                  onClick={() => openDetails(movie)}
                   className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold shadow-2xl shadow-black/40 backdrop-blur-2xl transition hover:bg-white/20"
                 >
                   Details
@@ -726,7 +817,7 @@ export default function Home() {
               {recommendations.map((movie) => (
                 <button
                   key={movie.id}
-                  onClick={() => setSelected(movie)}
+                  onClick={() => openDetails(movie)}
                   className="movie-card group relative h-[24rem] w-64 shrink-0 overflow-hidden rounded-[1.75rem] text-left shadow-2xl shadow-black/60 transition duration-300 active:scale-[.98]"
                 >
                   <Image
@@ -796,7 +887,7 @@ export default function Home() {
                         </span>
                       </button>
                       <button
-                        onClick={() => setSelected(movie)}
+                        onClick={() => openDetails(movie)}
                         className="rounded-full border border-white/12 bg-white/10 px-4 py-2 text-xs font-bold text-white/82 transition active:scale-95"
                       >
                         Details
@@ -837,7 +928,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => {
-                      setSelected(movie);
+                      openDetails(movie);
                       setInput("");
                       setLiveSuggestions([]);
                     }}
@@ -1026,6 +1117,14 @@ export default function Home() {
           >
             <Icon name="x" />
           </button>
+        </div>
+      )}
+      {isOpeningDetails && (
+        <div className="fixed inset-0 z-[70] grid place-items-center bg-black/60 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-white/20 border-t-white" />
+            <p className="text-sm font-bold text-white/70">Loading details...</p>
+          </div>
         </div>
       )}
     </main>
