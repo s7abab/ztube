@@ -941,6 +941,14 @@ export default function Home() {
                   </div>
                 </div>
                 <p className="mt-6 text-lg leading-8 text-white/74">{selected.description}</p>
+                <button
+                  onClick={() => setWatching(selected)}
+                  className="mt-5 rounded-full bg-white px-5 py-3 text-sm font-black text-black shadow-2xl shadow-white/10 transition active:scale-[.98]"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    <Icon name="play" /> Watch
+                  </span>
+                </button>
                 <div className="mt-6 overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/8 p-2 backdrop-blur-2xl">
                   {selected.trailerKey ? (
                     <iframe
