@@ -489,7 +489,7 @@ export default function Home() {
         isVisible={tab === "chat"}
       />
 
-      <nav className="fixed inset-x-0 top-6 z-50 mx-auto grid w-[min(92vw,25rem)] grid-cols-2 rounded-full border border-white/12 bg-black/45 p-2 shadow-2xl shadow-black/60 backdrop-blur-2xl">
+      <nav className="fixed inset-x-0 top-2 sm:top-4 z-50 mx-auto grid w-[min(90vw,18rem)] grid-cols-2 gap-1 rounded-full border border-white/10 bg-black/50 p-1.5 shadow-2xl shadow-purple-900/10 backdrop-blur-3xl transition-all duration-500 hover:bg-black/60 hover:shadow-purple-900/20">
         {[
           ["reels", "Reels", "film"],
           ["chat", "Chat", "chat"],
@@ -497,11 +497,13 @@ export default function Home() {
           <button
             key={value}
             onClick={() => setTab(value as "reels" | "chat")}
-            className={`relative flex items-center justify-center gap-2 rounded-full px-4 py-3 text-sm font-bold transition duration-300 active:scale-95 ${
-              tab === value ? "nav-active text-white" : "text-white/48"
+            className={`relative flex items-center justify-center gap-2 rounded-full py-2.5 text-[15px] font-bold transition-all duration-300 active:scale-[0.97] ${
+              tab === value
+                ? "bg-white text-black shadow-lg shadow-white/20"
+                : "text-white/60 hover:bg-white/10 hover:text-white"
             }`}
           >
-            <Icon name={icon as "film" | "chat"} />
+            <span className={`scale-90 ${tab === value ? "opacity-100" : "opacity-80"}`}><Icon name={icon as "film" | "chat"} /></span>
             {label}
           </button>
         ))}
