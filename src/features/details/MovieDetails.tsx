@@ -30,25 +30,29 @@ export function MovieDetails({ selected, onClose, onWatch }: MovieDetailsProps) 
         >
           <Icon name="x" />
         </button>
-        <div className="relative -mt-28 px-5">
+        <div className="relative -mt-24 px-4 sm:px-5">
           <div className="mx-auto max-w-3xl">
-            <div className="flex items-end gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
               <Image
                 src={selected.poster}
                 alt=""
                 width={224}
                 height={352}
-                className="h-44 w-28 rounded-3xl object-cover shadow-2xl"
+                className="h-40 w-28 shrink-0 rounded-3xl object-cover shadow-2xl sm:h-44"
               />
-              <div className="pb-2">
-                <p className="text-sm font-bold text-white/50">{selected.year} · {selected.genres.join(" / ")}</p>
-                <h2 className="mt-2 text-4xl font-black tracking-tight">{selected.title}</h2>
+              <div className="pb-1 sm:pb-2">
+                <p className="text-xs font-bold text-white/50 sm:text-sm">
+                  {selected.year} · {selected.genres.join(" / ")}
+                </p>
+                <h2 className="mt-1.5 text-2xl font-black tracking-tight sm:mt-2 sm:text-4xl">
+                  {selected.title}
+                </h2>
                 <p className="mt-2 inline-flex rounded-full bg-emerald-300 px-3 py-1 text-sm font-black text-black">
                   {selected.rating} ZTube
                 </p>
               </div>
             </div>
-            <p className="mt-6 text-lg leading-8 text-white/74">{selected.description}</p>
+            <p className="mt-5 text-base leading-7 text-white/75 sm:mt-6 sm:text-lg sm:leading-8">{selected.description}</p>
             <button
               onClick={() => onWatch(selected)}
               className="mt-5 rounded-full bg-white px-5 py-3 text-sm font-black text-black shadow-2xl shadow-white/10 transition active:scale-[.98]"
