@@ -259,7 +259,7 @@ export function AIChat(props: AIChatProps) {
           <input
             value={props.input}
             onChange={(event) => props.setInput(event.target.value)}
-            placeholder="Describe a mood, vibe, or actor..."
+            placeholder="Search movie name, actor name, or describe something..."
             className="min-w-0 flex-1 bg-transparent px-4 py-3 text-[15px] font-medium text-white outline-none placeholder:text-white/40"
           />
           <button 

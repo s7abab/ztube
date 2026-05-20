@@ -30,7 +30,7 @@ export function ReelsFeed(props: ReelsFeedProps) {
   return (
     <section className="relative z-10 block">
       <div
-        className="h-svh snap-y snap-mandatory overflow-y-auto overscroll-contain scroll-smooth"
+        className="h-svh snap-y snap-mandatory overflow-y-auto overscroll-contain"
         onScroll={(event) => {
           const next = Math.round(event.currentTarget.scrollTop / window.innerHeight);
           props.setActive(Math.min(Math.max(next, 0), props.movies.length - 1));
@@ -42,7 +42,7 @@ export function ReelsFeed(props: ReelsFeedProps) {
         {props.movies.map((movie, index) => (
           <article
             key={movie.id}
-            className="relative h-svh snap-start overflow-hidden"
+            className="relative h-svh snap-start snap-always overflow-hidden"
             onDoubleClick={() => props.handleLike(movie)}
           >
             <div className="absolute inset-0">
