@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Movie } from "@/types";
 import { Icon } from "@/components/Icon";
+import { useEffect, useRef } from "react";
 
 interface AIChatProps {
   tmdbStatus: string;
@@ -21,179 +22,220 @@ interface AIChatProps {
 }
 
 export function AIChat(props: AIChatProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [props.messages, props.thinking, props.chatSuggestions]);
+
   if (!props.isVisible) return null;
+
+  const hasChatStarted = props.messages.length > 0;
 
   return (
     <section className="relative z-10 flex min-h-svh flex-col pb-28">
-      <div className="sticky top-0 z-10 border-b border-white/10 bg-black/30 px-5 pb-4 pt-24 backdrop-blur-2xl">
-        <div className="flex items-center gap-3">
-          <div className="ai-orb grid h-11 w-11 place-items-center rounded-full">
+      {/* Premium Header */}
+      <div className="sticky top-0 z-10 border-b border-white/5 bg-black/40 px-5 pb-4 pt-24 backdrop-blur-3xl">
+        <div className="flex items-center gap-4">
+          <div className="relative grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/20">
             <Icon name="spark" />
+            <div className="absolute inset-0 rounded-full border border-white/20" />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[.28em] text-white/45">
-              {props.tmdbStatus === "live" ? "ZTube AI assistant" : "AI Movie Assistant"}
+            <h2 className="text-xl font-black tracking-tight text-white">ZTube AI</h2>
+            <p className="text-xs font-medium uppercase tracking-widest text-purple-300/80">
+              {props.tmdbStatus === "live" ? "Live Search Enabled" : "Offline Assistant"}
             </p>
-            <h2 className="text-xl font-black tracking-tight">Ask for a feeling</h2>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 space-y-5 overflow-y-auto px-4 py-5">
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {props.prompts.map((prompt) => (
-            <button
-              key={prompt}
-              onClick={() => props.ask(prompt)}
-              className="shrink-0 rounded-full border border-white/10 bg-white/8 px-4 py-2 text-sm text-white/78 backdrop-blur-xl transition active:scale-95"
-            >
-              {prompt}
-            </button>
-          ))}
-        </div>
+      <div ref={scrollRef} className="flex-1 space-y-6 overflow-y-auto px-4 py-6 scroll-smooth">
+        {!hasChatStarted && (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="text-center mt-6">
+              <h1 className="text-3xl font-black tracking-tight bg-gradient-to-br from-white to-white/40 bg-clip-text text-transparent">
+                What are you in the mood for?
+              </h1>
+              <p className="mt-2 text-sm text-white/50">
+                Describe a feeling, an actor, or a genre.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap justify-center gap-2 px-2">
+              {props.prompts.map((prompt) => (
+                <button
+                  key={prompt}
+                  onClick={() => props.ask(prompt)}
+                  className="rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/80 backdrop-blur-xl transition hover:bg-white/10 active:scale-95"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-4 pt-4">
+              <div className="flex items-center justify-between px-2">
+                <p className="text-xs font-bold uppercase tracking-widest text-white/40">
+                  Trending Now
+                </p>
+              </div>
+              <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory">
+                {props.recommendations.map((movie) => (
+                  <button
+                    key={movie.id}
+                    onClick={() => props.openDetails(movie)}
+                    className="group relative h-[22rem] w-60 shrink-0 snap-start overflow-hidden rounded-[2rem] text-left shadow-2xl transition duration-500 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Image
+                      src={movie.poster}
+                      alt=""
+                      fill
+                      sizes="240px"
+                      className="object-cover transition duration-700 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 p-5">
+                      <div className="mb-3 inline-flex rounded-full bg-purple-500/90 px-2.5 py-1 text-xs font-black text-white shadow-lg shadow-purple-500/20 backdrop-blur-md">
+                        {movie.rating} ZTube
+                      </div>
+                      <h3 className="text-2xl font-black leading-tight text-white">{movie.title}</h3>
+                      <div className="mt-3 flex gap-2 overflow-hidden">
+                        {movie.genres.map((genre) => (
+                          <span key={genre} className="rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-md">
+                            {genre}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         {props.messages.map((message, index) => (
           <div
             key={`${message.role}-${index}`}
-            className={`message-in flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+            className={`flex w-full ${message.role === "user" ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2`}
           >
             <div
-              className={`max-w-[86%] rounded-[1.5rem] px-4 py-3 text-sm leading-6 shadow-xl backdrop-blur-2xl ${
+              className={`relative max-w-[85%] rounded-[2rem] px-5 py-4 text-[15px] leading-relaxed shadow-2xl backdrop-blur-2xl ${
                 message.role === "user"
-                  ? "bg-white text-black"
-                  : "border border-white/10 bg-white/8 text-white/80"
+                  ? "bg-gradient-to-br from-white to-gray-200 text-black rounded-br-sm"
+                  : "bg-white/10 text-white/90 border border-white/10 rounded-bl-sm"
               }`}
             >
+              {message.role === "ai" && (
+                <div className="absolute -left-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-purple-500 shadow-lg">
+                  <Icon name="spark" />
+                </div>
+              )}
               {message.text}
             </div>
           </div>
         ))}
 
         {props.thinking && (
-          <div className="flex items-center gap-2 text-sm text-white/55">
-            <span className="typing-dot" />
-            <span className="typing-dot delay-100" />
-            <span className="typing-dot delay-200" />
-            Thinking through tone, pacing, and streaming fit
+          <div className="flex w-full justify-start animate-in fade-in">
+            <div className="relative max-w-[85%] rounded-[2rem] rounded-bl-sm border border-white/10 bg-white/5 px-5 py-4 text-sm text-white/60 shadow-xl backdrop-blur-2xl">
+              <div className="flex items-center gap-2">
+                <span className="flex gap-1">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-purple-400"></span>
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-purple-400 [animation-delay:0.2s]"></span>
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-purple-400 [animation-delay:0.4s]"></span>
+                </span>
+                <span className="ml-2 font-medium">Curating your movies...</span>
+              </div>
+            </div>
           </div>
         )}
 
-        <div className="space-y-4">
-          <p className="px-1 text-xs font-semibold uppercase tracking-[.28em] text-white/38">
-            Recommended set
-          </p>
-          <div className="flex gap-4 overflow-x-auto pb-3">
-            {props.recommendations.map((movie) => (
-              <button
-                key={movie.id}
-                onClick={() => props.openDetails(movie)}
-                className="movie-card group relative h-[24rem] w-64 shrink-0 overflow-hidden rounded-[1.75rem] text-left shadow-2xl shadow-black/60 transition duration-300 active:scale-[.98]"
-              >
-                <Image
-                  src={movie.poster}
-                  alt=""
-                  fill
-                  sizes="256px"
-                  className="object-cover transition duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-                <div className="absolute inset-x-0 bottom-0 p-4">
-                  <div className="mb-3 inline-flex rounded-full bg-white/90 px-2.5 py-1 text-xs font-black text-black">
-                    {movie.rating} ZTube
+        {hasChatStarted && props.chatSuggestions.length > 0 && !props.thinking && (
+          <div className="space-y-4 pt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <p className="px-2 text-xs font-bold uppercase tracking-widest text-purple-300/60">
+              Found for you
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {props.chatSuggestions.map((movie) => (
+                <div
+                  key={`suggestion-${movie.id}`}
+                  className="group relative flex gap-4 rounded-[1.75rem] border border-white/5 bg-white/5 p-3 shadow-xl transition hover:bg-white/10 hover:shadow-purple-500/10"
+                >
+                  <div className="relative h-32 w-24 shrink-0 overflow-hidden rounded-2xl shadow-lg">
+                    <Image
+                      src={movie.poster}
+                      alt=""
+                      fill
+                      sizes="96px"
+                      className="object-cover transition duration-500 group-hover:scale-105"
+                    />
                   </div>
-                  <h3 className="text-2xl font-black leading-none">{movie.title}</h3>
-                  <p className="mt-2 text-sm text-white/70">{movie.why}</p>
-                  <div className="mt-4 flex gap-2 overflow-hidden">
-                    {movie.genres.map((genre) => (
-                      <span key={genre} className="rounded-full bg-white/12 px-2.5 py-1 text-xs">
-                        {genre}
+                  <div className="flex min-w-0 flex-1 flex-col py-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-[17px] font-black text-white">{movie.title}</h3>
+                        <p className="mt-0.5 truncate text-xs font-medium text-white/50">
+                          {movie.year} · {movie.genres[0]}
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-purple-500/20 px-2 py-1 text-[10px] font-black text-purple-300">
+                        {movie.rating}
                       </span>
-                    ))}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <p className="px-1 text-xs font-semibold uppercase tracking-[.28em] text-white/38">
-            Search suggestions
-          </p>
-          <div className="space-y-3">
-            {props.chatSuggestions.map((movie) => (
-              <div
-                key={`suggestion-${movie.id}`}
-                className="glass-panel message-in flex gap-3 rounded-[1.5rem] p-3 shadow-2xl shadow-black/30"
-              >
-                <Image
-                  src={movie.poster}
-                  alt=""
-                  width={96}
-                  height={144}
-                  className="h-28 w-20 shrink-0 rounded-2xl object-cover"
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="truncate text-lg font-black leading-tight">{movie.title}</h3>
-                      <p className="mt-1 text-xs text-white/55">
-                        {movie.year} · {movie.genres.join(" / ")} · {movie.rating} ZTube
-                      </p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-emerald-300 px-2 py-1 text-xs font-black text-black">
-                      {movie.rating}
-                    </span>
-                  </div>
-                  <p className="mt-2 line-clamp-2 text-sm leading-5 text-white/68">{movie.why}</p>
-                  <div className="mt-3 flex gap-2">
-                    <button
-                      onClick={() => props.handleWatch(movie)}
-                      className="rounded-full bg-white px-4 py-2 text-xs font-black text-black transition active:scale-95"
-                    >
-                      <span className="inline-flex items-center gap-1.5">
+                    <p className="mt-2 line-clamp-2 text-[13px] leading-snug text-white/70">{movie.why}</p>
+                    <div className="mt-auto flex gap-2 pt-3">
+                      <button
+                        onClick={() => props.handleWatch(movie)}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-full bg-white px-3 py-2 text-xs font-black text-black shadow-lg transition active:scale-95"
+                      >
                         <Icon name="play" /> Watch
-                      </span>
-                    </button>
-                    <button
-                      onClick={() => props.openDetails(movie)}
-                      className="rounded-full border border-white/12 bg-white/10 px-4 py-2 text-xs font-bold text-white/82 transition active:scale-95"
-                    >
-                      Details
-                    </button>
+                      </button>
+                      <button
+                        onClick={() => props.openDetails(movie)}
+                        className="flex flex-1 items-center justify-center rounded-full border border-white/20 bg-black/40 px-3 py-2 text-xs font-bold text-white transition hover:bg-white/10 active:scale-95"
+                      >
+                        Details
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       <div className="fixed inset-x-0 bottom-6 z-20 px-4">
         {(props.input.trim().length >= 2 || props.isLoadingSuggestions) && (
-          <div className="mx-auto mb-3 max-h-[42svh] max-w-xl overflow-y-auto rounded-[1.5rem] border border-white/12 bg-black/65 p-2 shadow-2xl shadow-black/60 backdrop-blur-2xl">
+          <div className="mx-auto mb-3 max-h-[42svh] max-w-xl overflow-y-auto rounded-[1.5rem] border border-white/10 bg-black/80 p-2 shadow-2xl shadow-black backdrop-blur-3xl">
             {props.isLoadingSuggestions && (
-              <div className="px-3 py-2 text-xs font-semibold text-white/50">
+              <div className="px-4 py-3 text-sm font-medium text-white/50">
                 Searching ZTube...
               </div>
             )}
             {!props.isLoadingSuggestions && props.liveSuggestions.length === 0 && (
-              <div className="px-3 py-2 text-xs font-semibold text-white/50">
-                No suggestions found
+              <div className="px-4 py-3 text-sm font-medium text-white/50">
+                No matching movies found
               </div>
             )}
             {props.liveSuggestions.map((movie) => (
               <div
                 key={`live-${movie.id}`}
-                className="flex items-center gap-3 rounded-[1.1rem] p-2 transition hover:bg-white/8"
+                className="group flex items-center gap-3 rounded-xl p-2 transition hover:bg-white/10"
               >
-                <Image
-                  src={movie.poster}
-                  alt=""
-                  width={64}
-                  height={96}
-                  className="h-16 w-11 shrink-0 rounded-xl object-cover"
-                />
+                <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-lg shadow-md">
+                  <Image
+                    src={movie.poster}
+                    alt=""
+                    fill
+                    sizes="40px"
+                    className="object-cover transition group-hover:scale-105"
+                  />
+                </div>
                 <button
                   type="button"
                   onClick={() => {
@@ -203,8 +245,8 @@ export function AIChat(props: AIChatProps) {
                   }}
                   className="min-w-0 flex-1 text-left"
                 >
-                  <p className="truncate text-sm font-black">{movie.title}</p>
-                  <p className="mt-0.5 truncate text-xs text-white/50">
+                  <p className="truncate text-[15px] font-bold text-white">{movie.title}</p>
+                  <p className="mt-0.5 truncate text-xs font-medium text-white/50">
                     {movie.year} · {movie.genres.join(" / ")}
                   </p>
                 </button>
@@ -215,7 +257,7 @@ export function AIChat(props: AIChatProps) {
                     props.setInput("");
                     props.setLiveSuggestions([]);
                   }}
-                  className="rounded-full bg-white px-3 py-2 text-xs font-black text-black transition active:scale-95"
+                  className="rounded-full bg-purple-500 px-4 py-2 text-xs font-black text-white shadow-lg transition hover:bg-purple-400 active:scale-95"
                 >
                   Watch
                 </button>
@@ -228,15 +270,19 @@ export function AIChat(props: AIChatProps) {
             event.preventDefault();
             props.ask();
           }}
-          className="mx-auto flex max-w-xl items-center gap-2 rounded-full border border-white/12 bg-black/45 p-2 shadow-2xl shadow-black/50 backdrop-blur-2xl"
+          className="mx-auto flex max-w-xl items-center gap-2 rounded-full border border-white/20 bg-black/60 p-2 shadow-2xl shadow-purple-900/20 backdrop-blur-3xl focus-within:border-purple-500/50 focus-within:shadow-purple-500/20 transition-all duration-300"
         >
           <input
             value={props.input}
             onChange={(event) => props.setInput(event.target.value)}
-            placeholder="Ask for movies by mood, vibe, actor..."
-            className="min-w-0 flex-1 bg-transparent px-4 py-3 text-sm text-white outline-none placeholder:text-white/36"
+            placeholder="Describe a mood, vibe, or actor..."
+            className="min-w-0 flex-1 bg-transparent px-4 py-3 text-[15px] font-medium text-white outline-none placeholder:text-white/40"
           />
-          <button className="grid h-11 w-11 place-items-center rounded-full bg-white text-black transition active:scale-90">
+          <button 
+            type="submit"
+            disabled={!props.input.trim() && !props.thinking}
+            className="grid h-12 w-12 place-items-center rounded-full bg-white text-black shadow-lg transition active:scale-90 disabled:opacity-50 disabled:active:scale-100"
+          >
             <Icon name="send" />
           </button>
         </form>
