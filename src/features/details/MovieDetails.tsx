@@ -25,7 +25,7 @@ export function MovieDetails({ selected, onClose, onWatch }: MovieDetailsProps) 
         <div className="absolute inset-x-0 top-0 h-[55svh] bg-gradient-to-b from-black/20 via-black/30 to-black" />
         <button
           onClick={onClose}
-          className="fixed right-4 top-4 z-20 grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-black/45 backdrop-blur-xl"
+          className="fixed right-4 top-10 sm:right-8 sm:top-8 z-20 grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-black/45 backdrop-blur-xl"
           aria-label="Close details"
         >
           <Icon name="x" />

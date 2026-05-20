@@ -77,7 +77,7 @@ export function ReelsFeed(props: ReelsFeedProps) {
               />
             ) : null}
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.1)_0%,rgba(0,0,0,.38)_46%,rgba(0,0,0,.94)_100%)]" />
-            <div className="absolute inset-x-0 top-0 flex items-center justify-between px-5 pt-24">
+            <div className="absolute inset-x-0 top-0 flex items-center justify-between px-5 pt-[112px]">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[.32em] text-white/50">
                   {props.tmdbStatus === "live"
@@ -97,7 +97,7 @@ export function ReelsFeed(props: ReelsFeedProps) {
             </div>
 
             {props.isLoadingMovies && index === 0 && (
-              <div className="absolute left-5 top-24 z-20 rounded-full border border-white/10 bg-black/35 px-4 py-2 text-xs font-semibold text-white/70 backdrop-blur-2xl">
+              <div className="absolute left-5 top-[112px] z-20 rounded-full border border-white/10 bg-black/35 px-4 py-2 text-xs font-semibold text-white/70 backdrop-blur-2xl">
                 Loading ZTube movies...
               </div>
             )}
@@ -150,7 +150,7 @@ export function ReelsFeed(props: ReelsFeedProps) {
                 </div>
                 <button
                   onClick={() => props.setExpanded(props.expanded === movie.id ? null : movie.id)}
-                  className="mt-3 text-left text-sm leading-6 text-white/70"
+                  className="mt-3 text-left text-[13px] leading-snug text-white/70 transition-all duration-300 active:text-white"
                 >
                   {props.expanded === movie.id
                     ? movie.description

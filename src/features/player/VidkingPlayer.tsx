@@ -18,7 +18,7 @@ export function VidkingPlayer({ watching, onClose }: VidkingPlayerProps) {
       />
       <button
         onClick={onClose}
-        className="fixed right-4 top-4 z-20 grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-black/55 text-white shadow-2xl backdrop-blur-xl"
+        className="fixed right-4 top-10 sm:right-8 sm:top-8 z-20 grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-black/55 text-white shadow-2xl backdrop-blur-xl"
         aria-label="Close movie player"
       >
         <Icon name="x" />
