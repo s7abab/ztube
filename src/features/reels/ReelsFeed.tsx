@@ -12,6 +12,7 @@ interface ReelsFeedProps {
   handleLike: (movie: Movie) => void;
   liked: number | null;
   soundOn: boolean;
+  toggleSound: () => void;
   watching: Movie | null;
   openDetails: (movie: Movie) => void;
   expanded: number | null;
@@ -88,12 +89,20 @@ export function ReelsFeed(props: ReelsFeedProps) {
                 </p>
                 <h1 className="mt-1 text-2xl font-black tracking-tight">Z Tube</h1>
               </div>
-              <button
-                onClick={() => props.openDetails(movie)}
-                className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold shadow-2xl shadow-black/40 backdrop-blur-2xl transition hover:bg-white/20"
-              >
-                Details
-              </button>
+              <div className="flex flex-col items-end gap-3">
+                <button
+                  onClick={() => props.openDetails(movie)}
+                  className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold shadow-2xl shadow-black/40 backdrop-blur-2xl transition hover:bg-white/20"
+                >
+                  Details
+                </button>
+                <button
+                  onClick={props.toggleSound}
+                  className="grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-black/40 text-white shadow-2xl backdrop-blur-2xl transition hover:bg-white/20"
+                >
+                  <Icon name={props.soundOn ? "sound" : "mute"} />
+                </button>
+              </div>
             </div>
 
             {props.isLoadingMovies && index === 0 && (

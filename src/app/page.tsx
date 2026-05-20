@@ -34,7 +34,7 @@ export default function Home() {
   const [active, setActive] = useState(0);
   const [expanded, setExpanded] = useState<number | null>(null);
   const [liked, setLiked] = useState<number | null>(null);
-  const [soundOn, setSoundOn] = useState(true);
+  const [soundOn, setSoundOn] = useState(false);
   const [selected, setSelected] = useState<Movie | null>(null);
   const [watching, setWatching] = useState<Movie | null>(null);
 
@@ -459,6 +459,7 @@ export default function Home() {
         handleLike={handleLike}
         liked={liked}
         soundOn={soundOn}
+        toggleSound={() => setSoundOn(!soundOn)}
         watching={watching}
         openDetails={openDetails}
         expanded={expanded}
