@@ -238,7 +238,7 @@ function mapTmdbMovie(movie: TmdbMovieDetail, index: number): Movie {
   };
 }
 
-async function hydrateTmdbMovies(movies: TmdbMovie[], token: string, offset = 0) {
+async function hydrateTmdbMovies(movies: TmdbMovie[], token: string, offset = 0, requireTrailer = true) {
   const detailedMovies = await Promise.all(
     movies
       .filter((movie) => movie.poster_path && movie.backdrop_path)
@@ -252,7 +252,7 @@ async function hydrateTmdbMovies(movies: TmdbMovie[], token: string, offset = 0)
   );
   return detailedMovies
     .map((movie, index) => mapTmdbMovie(movie, index + offset))
-    .filter((movie) => movie.trailerKey);
+    .filter((movie) => !requireTrailer || movie.trailerKey);
 }
 
 const prompts = [
@@ -263,7 +263,7 @@ const prompts = [
   "Feel-good movies for night",
 ];
 
-function Icon({ name }: { name: "play" | "spark" | "heart" | "share" | "bookmark" | "film" | "chat" | "send" | "x" }) {
+function Icon({ name }: { name: "play" | "spark" | "heart" | "share" | "bookmark" | "film" | "chat" | "send" | "x" | "sound" | "mute" }) {
   const common = "h-5 w-5";
   if (name === "play") return <span className={common}>▶</span>;
   if (name === "spark") return <span className={common}>✦</span>;
@@ -273,6 +273,8 @@ function Icon({ name }: { name: "play" | "spark" | "heart" | "share" | "bookmark
   if (name === "chat") return <span className={common}>◐</span>;
   if (name === "send") return <span className={common}>➤</span>;
   if (name === "x") return <span className={common}>×</span>;
+  if (name === "sound") return <span className={common}>♪</span>;
+  if (name === "mute") return <span className={common}>⌁</span>;
   return <span className={common}>▰</span>;
 }
 
@@ -289,7 +291,10 @@ export default function Home() {
   const [active, setActive] = useState(0);
   const [expanded, setExpanded] = useState<number | null>(null);
   const [liked, setLiked] = useState<number | null>(null);
+  const [soundOn, setSoundOn] = useState(false);
   const [selected, setSelected] = useState<Movie | null>(null);
+  const [watching, setWatching] = useState<Movie | null>(null);
+  const [gptSuggestions, setGptSuggestions] = useState<Movie[]>(fallbackMovies.slice(0, 3));
   const [messages, setMessages] = useState([
     {
       role: "ai",
@@ -298,6 +303,8 @@ export default function Home() {
   ]);
   const [input, setInput] = useState("");
   const [thinking, setThinking] = useState(false);
+  const [liveSuggestions, setLiveSuggestions] = useState<Movie[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const loadingMoreRef = useRef(false);
 
@@ -374,13 +381,55 @@ export default function Home() {
   useEffect(() => {
     videoRefs.current.forEach((video, index) => {
       if (!video) return;
-      if (index === active && tab === "reels") {
+      if (index === active && tab === "reels" && !watching) {
         video.play().catch(() => undefined);
       } else {
         video.pause();
       }
     });
-  }, [active, tab]);
+  }, [active, tab, watching]);
+
+  useEffect(() => {
+    const token = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+    const query = input.trim();
+    if (!token || tab !== "gpt" || query.length < 2) {
+      const resetTimeout = window.setTimeout(() => {
+        setLiveSuggestions([]);
+        setIsLoadingSuggestions(false);
+      }, 0);
+      return () => window.clearTimeout(resetTimeout);
+    }
+
+    let cancelled = false;
+
+    const timeout = window.setTimeout(async () => {
+      try {
+        setIsLoadingSuggestions(true);
+        const search = await tmdbFetch<{ results: TmdbMovie[] }>(
+          `/search/movie?query=${encodeURIComponent(query)}&include_adult=false&language=en-US&page=1`,
+          token,
+        );
+        const suggestions = await hydrateTmdbMovies(search.results.slice(0, 5), token, 0, false);
+        if (!cancelled) {
+          setLiveSuggestions(suggestions);
+        }
+      } catch (error) {
+        console.error(error);
+        if (!cancelled) {
+          setLiveSuggestions([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingSuggestions(false);
+        }
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [input, tab]);
 
   const recommendations = useMemo(() => movies.slice(0, 3), [movies]);
 
@@ -398,9 +447,10 @@ export default function Home() {
           `/search/movie?query=${encodeURIComponent(text)}&include_adult=false&language=en-US&page=1`,
           token,
         );
-        const detailedMovies = await hydrateTmdbMovies(search.results, token);
+        const detailedMovies = await hydrateTmdbMovies(search.results, token, 0, false);
         if (detailedMovies.length) {
           setMovies(detailedMovies);
+          setGptSuggestions(detailedMovies.slice(0, 6));
           setActive(0);
           setTmdbPage(1);
           setHasMoreReels(false);
@@ -412,7 +462,7 @@ export default function Home() {
         {
           role: "ai",
           text: token
-            ? "I searched TMDB and rebuilt the carousel around that request."
+            ? "I found these matches on TMDB. Tap Watch to play one now, or open details for cast, providers, and similar movies."
             : "Add NEXT_PUBLIC_TMDB_API_KEY to make this search live against TMDB.",
         },
       ]);
@@ -462,10 +512,10 @@ export default function Home() {
                   className="scale-105 object-cover opacity-65 blur-sm"
                 />
               </div>
-              {movie.trailerKey && active === index ? (
+              {movie.trailerKey && active === index && tab === "reels" && !watching ? (
                 <iframe
-                  key={`${movie.id}-${movie.trailerKey}`}
-                  src={`https://www.youtube.com/embed/${movie.trailerKey}?autoplay=1&mute=1&controls=0&loop=1&playlist=${movie.trailerKey}&playsinline=1&rel=0&modestbranding=1`}
+                  key={`${movie.id}-${movie.trailerKey}-${soundOn ? "sound" : "muted"}`}
+                  src={`https://www.youtube.com/embed/${movie.trailerKey}?autoplay=1&mute=${soundOn ? "0" : "1"}&controls=0&loop=1&playlist=${movie.trailerKey}&playsinline=1&rel=0&modestbranding=1`}
                   title={`${movie.title} trailer reel`}
                   allow="autoplay; encrypted-media; picture-in-picture"
                   className="pointer-events-none absolute left-1/2 top-1/2 h-[120svh] w-[213svh] min-h-full min-w-full -translate-x-1/2 -translate-y-1/2 border-0 opacity-80"
@@ -502,6 +552,14 @@ export default function Home() {
                   Details
                 </button>
               </div>
+
+              <button
+                onClick={() => setSoundOn((current) => !current)}
+                className="absolute right-4 top-24 z-20 grid h-12 w-12 place-items-center rounded-full border border-white/15 bg-black/30 shadow-xl backdrop-blur-2xl transition active:scale-90"
+                aria-label={soundOn ? "Mute trailer sound" : "Play trailer sound"}
+              >
+                <Icon name={soundOn ? "sound" : "mute"} />
+              </button>
 
               {isLoadingMovies && index === 0 && (
                 <div className="absolute left-5 top-24 z-20 rounded-full border border-white/10 bg-black/35 px-4 py-2 text-xs font-semibold text-white/70 backdrop-blur-2xl">
@@ -579,14 +637,12 @@ export default function Home() {
                   <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
                     <button
                       onClick={() => {
-                        if (movie.trailerKey) {
-                          window.open(`https://www.youtube.com/watch?v=${movie.trailerKey}`, "_blank", "noopener,noreferrer");
-                        }
+                        setWatching(movie);
                       }}
                       className="rounded-full bg-white px-4 py-3 text-sm font-black text-black transition active:scale-[.98]"
                     >
                       <span className="inline-flex items-center gap-2">
-                        <Icon name="play" /> Watch Trailer
+                        <Icon name="play" /> Watch
                       </span>
                     </button>
                     <button className="rounded-full border border-white/15 bg-white/10 px-4 py-3 text-sm font-bold backdrop-blur-xl transition active:scale-[.98]">
@@ -699,9 +755,114 @@ export default function Home() {
               ))}
             </div>
           </div>
+
+          <div className="space-y-4">
+            <p className="px-1 text-xs font-semibold uppercase tracking-[.28em] text-white/38">
+              Search suggestions
+            </p>
+            <div className="space-y-3">
+              {gptSuggestions.map((movie) => (
+                <div
+                  key={`suggestion-${movie.id}`}
+                  className="glass-panel message-in flex gap-3 rounded-[1.5rem] p-3 shadow-2xl shadow-black/30"
+                >
+                  <Image
+                    src={movie.poster}
+                    alt=""
+                    width={96}
+                    height={144}
+                    className="h-28 w-20 shrink-0 rounded-2xl object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-lg font-black leading-tight">{movie.title}</h3>
+                        <p className="mt-1 text-xs text-white/55">
+                          {movie.year} · {movie.genres.join(" / ")} · {movie.rating} TMDB
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full bg-emerald-300 px-2 py-1 text-xs font-black text-black">
+                        {movie.rating}
+                      </span>
+                    </div>
+                    <p className="mt-2 line-clamp-2 text-sm leading-5 text-white/68">{movie.why}</p>
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        onClick={() => setWatching(movie)}
+                        className="rounded-full bg-white px-4 py-2 text-xs font-black text-black transition active:scale-95"
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          <Icon name="play" /> Watch
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => setSelected(movie)}
+                        className="rounded-full border border-white/12 bg-white/10 px-4 py-2 text-xs font-bold text-white/82 transition active:scale-95"
+                      >
+                        Details
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="fixed inset-x-0 bottom-24 z-20 px-4">
+          {(input.trim().length >= 2 || isLoadingSuggestions) && (
+            <div className="mx-auto mb-3 max-h-[42svh] max-w-xl overflow-y-auto rounded-[1.5rem] border border-white/12 bg-black/65 p-2 shadow-2xl shadow-black/60 backdrop-blur-2xl">
+              {isLoadingSuggestions && (
+                <div className="px-3 py-2 text-xs font-semibold text-white/50">
+                  Searching TMDB...
+                </div>
+              )}
+              {!isLoadingSuggestions && liveSuggestions.length === 0 && (
+                <div className="px-3 py-2 text-xs font-semibold text-white/50">
+                  No suggestions found
+                </div>
+              )}
+              {liveSuggestions.map((movie) => (
+                <div
+                  key={`live-${movie.id}`}
+                  className="flex items-center gap-3 rounded-[1.1rem] p-2 transition hover:bg-white/8"
+                >
+                  <Image
+                    src={movie.poster}
+                    alt=""
+                    width={64}
+                    height={96}
+                    className="h-16 w-11 shrink-0 rounded-xl object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelected(movie);
+                      setInput("");
+                      setLiveSuggestions([]);
+                    }}
+                    className="min-w-0 flex-1 text-left"
+                  >
+                    <p className="truncate text-sm font-black">{movie.title}</p>
+                    <p className="mt-0.5 truncate text-xs text-white/50">
+                      {movie.year} · {movie.genres.join(" / ")}
+                    </p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWatching(movie);
+                      setInput("");
+                      setLiveSuggestions([]);
+                    }}
+                    className="rounded-full bg-white px-3 py-2 text-xs font-black text-black transition active:scale-95"
+                  >
+                    Watch
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -783,14 +944,14 @@ export default function Home() {
                 <div className="mt-6 overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/8 p-2 backdrop-blur-2xl">
                   {selected.trailerKey ? (
                     <iframe
-                      src={`https://www.youtube.com/embed/${selected.trailerKey}?autoplay=0&rel=0&modestbranding=1`}
+                      src={`https://www.youtube.com/embed/${selected.trailerKey}?autoplay=0&controls=0&rel=0&modestbranding=1`}
                       title={`${selected.title} trailer`}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
                       className="aspect-video w-full rounded-[1.35rem]"
                     />
                   ) : (
-                    <video src={selected.trailer} poster={selected.backdrop} controls className="aspect-video w-full rounded-[1.35rem] object-cover" />
+                    <video src={selected.trailer} poster={selected.backdrop} className="aspect-video w-full rounded-[1.35rem] object-cover" />
                   )}
                 </div>
                 <div className="mt-7 grid gap-4 sm:grid-cols-2">
@@ -838,6 +999,25 @@ export default function Home() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {watching && (
+        <div className="fixed inset-0 z-[60] bg-black">
+          <iframe
+            src={`https://www.vidking.net/embed/movie/${watching.id}`}
+            title={`Watch ${watching.title}`}
+            allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+            allowFullScreen
+            className="h-full w-full border-0"
+          />
+          <button
+            onClick={() => setWatching(null)}
+            className="fixed right-4 top-4 z-20 grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-black/55 text-white shadow-2xl backdrop-blur-xl"
+            aria-label="Close movie player"
+          >
+            <Icon name="x" />
+          </button>
         </div>
       )}
     </main>
