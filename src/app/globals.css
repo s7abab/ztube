@@ -240,17 +240,19 @@ video {
   }
 }
 
-.reel-video {
+.reel-video-container {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
   border: 0;
   opacity: 1;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 @media (max-aspect-ratio: 16/9) {
-  .reel-video {
+  .reel-video-container {
     width: calc(58svh * 16 / 9) !important;
     height: 58svh !important;
     min-width: unset !important;
@@ -259,7 +261,7 @@ video {
 }
 
 @media (min-aspect-ratio: 16/9) {
-  .reel-video {
+  .reel-video-container {
     width: 100vw !important;
     height: 56.25vw !important;
     min-height: 100vh !important;

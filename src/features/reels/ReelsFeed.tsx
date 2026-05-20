@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { MutableRefObject } from "react";
+import { MutableRefObject, useEffect } from "react";
 import { Movie } from "@/types";
 import { Icon } from "@/components/Icon";
 
@@ -27,6 +27,17 @@ interface ReelsFeedProps {
 
 export function ReelsFeed(props: ReelsFeedProps) {
   if (!props.isVisible) return null;
+
+  useEffect(() => {
+    const iframe = document.querySelector(".reel-video-container iframe") as HTMLIFrameElement | null;
+    if (iframe && iframe.contentWindow) {
+      const command = props.soundOn ? "unMute" : "mute";
+      iframe.contentWindow.postMessage(
+        JSON.stringify({ event: "command", func: command, args: "" }),
+        "*"
+      );
+    }
+  }, [props.soundOn, props.active]);
 
   return (
     <section className="relative z-10 block">
@@ -56,27 +67,29 @@ export function ReelsFeed(props: ReelsFeedProps) {
                 className="scale-105 object-cover opacity-50 blur-sm"
               />
             </div>
-            {movie.trailerKey && props.active === index && !props.watching ? (
-              <iframe
-                key={`${movie.id}-${movie.trailerKey}-${props.soundOn ? "sound" : "muted"}`}
-                src={`https://www.youtube.com/embed/${movie.trailerKey}?autoplay=1&mute=${props.soundOn ? "0" : "1"}&controls=0&loop=1&playlist=${movie.trailerKey}&playsinline=1&rel=0&modestbranding=1`}
-                title={`${movie.title} trailer reel`}
-                allow="autoplay; encrypted-media; picture-in-picture"
-                className="pointer-events-none reel-video"
-              />
-            ) : !movie.trailerKey ? (
-              <video
-                ref={(node) => {
-                  props.videoRefs.current[index] = node;
-                }}
-                className="reel-video transition duration-700 object-contain"
-                src={movie.trailer}
-                poster={movie.backdrop}
-                muted={!props.soundOn}
-                loop
-                playsInline
-              />
-            ) : null}
+            <div className="reel-video-container">
+              {movie.trailerKey && props.active === index && !props.watching ? (
+                <iframe
+                  key={`${movie.id}-${movie.trailerKey}`}
+                  src={`https://www.youtube.com/embed/${movie.trailerKey}?autoplay=1&mute=${props.soundOn ? "0" : "1"}&controls=0&loop=1&playlist=${movie.trailerKey}&playsinline=1&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1`}
+                  title={`${movie.title} trailer reel`}
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  className="pointer-events-none absolute left-1/2 top-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2 scale-[1.25] border-0"
+                />
+              ) : !movie.trailerKey ? (
+                <video
+                  ref={(node) => {
+                    props.videoRefs.current[index] = node;
+                  }}
+                  className="h-full w-full object-contain transition duration-700"
+                  src={movie.trailer}
+                  poster={movie.backdrop}
+                  muted={!props.soundOn}
+                  loop
+                  playsInline
+                />
+              ) : null}
+            </div>
 
             <div className="absolute inset-x-0 top-0 flex items-center justify-between px-5 pt-[112px]">
               <div>
