@@ -324,25 +324,93 @@ export default function Home() {
     setInput("");
     setThinking(true);
     const token = process.env.NEXT_PUBLIC_TMDB_API_KEY;
+    const openRouterKey = process.env.NEXT_PUBLIC_OPEN_ROUTER_KEY;
 
     try {
-      if (token) {
-        let results = searchCache.get(text);
-        if (!results) {
-          const search = await tmdbFetch<{ results: TmdbMovie[] }>(
-            `/search/multi?query=${encodeURIComponent(text)}&include_adult=false&language=en-US&page=1`,
-            token,
-          );
-          results = search.results;
-          searchCache.set(text, results);
+      let searchQueries = [text];
+      let aiMessage = "";
+
+      if (openRouterKey) {
+        let retries = 5;
+        while (retries > 0) {
+          try {
+            const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${openRouterKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "google/gemini-2.5-flash",
+                max_tokens: 150,
+                messages: [
+                  {
+                    role: "system",
+                    content:
+                      'You are a movie recommendation assistant. The user will ask for a recommendation. You must reply ONLY with a JSON array of up to 4 exact movie titles that match the query. Do not include markdown formatting, explanations, or any other text. Example: ["Inception", "Interstellar"]',
+                  },
+                  { role: "user", content: text },
+                ],
+              }),
+            });
+            
+            if (!response.ok) {
+              throw new Error(`OpenRouter HTTP error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const content = data.choices[0].message.content.trim();
+            const parsed = JSON.parse(
+              content.replace(/```json/g, "").replace(/```/g, ""),
+            );
+            
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              searchQueries = parsed;
+              aiMessage = `I found some perfect matches for "${text}". Tap Watch to play one now!`;
+              break;
+            } else {
+              throw new Error("Response was not a valid array");
+            }
+          } catch (e) {
+            console.error(`OpenRouter request failed. Retries left: ${retries - 1}`, e);
+            retries--;
+            if (retries > 0) {
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+            }
+          }
         }
-        const detailedMovies = results
-          .filter(
-            (m) =>
-              m.media_type !== "person" && m.poster_path && m.backdrop_path,
-          )
+      }
+
+      if (token) {
+        let allResults: TmdbMovie[] = [];
+
+        for (const query of searchQueries) {
+          let results = searchCache.get(query);
+          if (!results) {
+            const search = await tmdbFetch<{ results: TmdbMovie[] }>(
+              `/search/multi?query=${encodeURIComponent(
+                query,
+              )}&include_adult=false&language=en-US&page=1`,
+              token,
+            );
+            results = search.results;
+            searchCache.set(query, results);
+          }
+          allResults = [...allResults, ...results];
+        }
+
+        const seenIds = new Set();
+        const detailedMovies = allResults
+          .filter((m) => {
+            if (m.media_type === "person" || !m.poster_path || !m.backdrop_path)
+              return false;
+            if (seenIds.has(m.id)) return false;
+            seenIds.add(m.id);
+            return true;
+          })
           .slice(0, 20)
           .map((m, index) => mapBasicTmdbMovie(m, index));
+
         if (detailedMovies.length) {
           setMovies(detailedMovies);
           setChatSuggestions(detailedMovies.slice(0, 6));
@@ -356,9 +424,11 @@ export default function Home() {
         ...current,
         {
           role: "ai",
-          text: token
-            ? "I found these matches on TMDB. Tap Watch to play one now, or open details for cast, providers, and similar movies."
-            : "Add NEXT_PUBLIC_TMDB_API_KEY to make this search live against TMDB.",
+          text:
+            aiMessage ||
+            (token
+              ? "I found these matches on ZTube. Tap Watch to play one now, or open details for cast, providers, and similar movies."
+              : "Add NEXT_PUBLIC_TMDB_API_KEY to make this search live against ZTube."),
         },
       ]);
     } catch (error) {
@@ -367,7 +437,7 @@ export default function Home() {
         ...current,
         {
           role: "ai",
-          text: "TMDB search did not respond, so I kept the current cinematic set on screen.",
+          text: "ZTube search did not respond, so I kept the current cinematic set on screen.",
         },
       ]);
     } finally {
