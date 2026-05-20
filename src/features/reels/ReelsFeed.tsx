@@ -86,7 +86,7 @@ export function ReelsFeed(props: ReelsFeedProps) {
                       ? "Add API key"
                       : "Fallback Reels"}
                 </p>
-                <h1 className="mt-1 text-2xl font-black tracking-tight">ztube</h1>
+                <h1 className="mt-1 text-2xl font-black tracking-tight">Z Tube</h1>
               </div>
               <button
                 onClick={() => props.openDetails(movie)}

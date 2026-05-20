@@ -36,23 +36,7 @@ export function AIChat(props: AIChatProps) {
 
   return (
     <section className="relative z-10 flex min-h-svh flex-col pb-28">
-      {/* Premium Header */}
-      <div className="sticky top-0 z-10 border-b border-white/5 bg-black/40 px-5 pb-4 pt-24 backdrop-blur-3xl">
-        <div className="flex items-center gap-4">
-          <div className="relative grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/20">
-            <Icon name="spark" />
-            <div className="absolute inset-0 rounded-full border border-white/20" />
-          </div>
-          <div>
-            <h2 className="text-xl font-black tracking-tight text-white">ZTube AI</h2>
-            <p className="text-xs font-medium uppercase tracking-widest text-purple-300/80">
-              {props.tmdbStatus === "live" ? "Live Search Enabled" : "Offline Assistant"}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div ref={scrollRef} className="flex-1 space-y-6 overflow-y-auto px-4 py-6 scroll-smooth">
+      <div ref={scrollRef} className="flex-1 space-y-6 overflow-y-auto px-4 pb-6 pt-28 scroll-smooth">
         {!hasChatStarted && (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="text-center mt-6">
@@ -157,7 +141,7 @@ export function AIChat(props: AIChatProps) {
         {hasChatStarted && props.chatSuggestions.length > 0 && !props.thinking && (
           <div className="space-y-4 pt-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <p className="px-2 text-xs font-bold uppercase tracking-widest text-purple-300/60">
-              Found for you
+              Recommended
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               {props.chatSuggestions.map((movie) => (

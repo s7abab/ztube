@@ -12,7 +12,7 @@ import {
   mapBasicTmdbMovie,
   searchCache,
 } from "@/lib/tmdb";
-import { getUserRegion, trackUserAction, getTopGenres } from "@/lib/profile";
+import { getUserRegion, trackUserAction, getTopGenres, getBehavioralContext } from "@/lib/profile";
 import { Icon } from "@/components/Icon";
 import { ReelsFeed } from "@/features/reels/ReelsFeed";
 import { AIChat } from "@/features/chat/AIChat";
@@ -40,12 +40,12 @@ export default function Home() {
 
   const handleWatch = useCallback((movie: Movie) => {
     setWatching(movie);
-    trackUserAction(movie.genres, 3);
+    trackUserAction(movie, 3);
   }, []);
 
   const handleLike = useCallback((movie: Movie) => {
     setLiked(movie.id);
-    trackUserAction(movie.genres, 2);
+    trackUserAction(movie, 2);
   }, []);
 
   const [chatSuggestions, setChatSuggestions] = useState<Movie[]>(
@@ -347,7 +347,7 @@ export default function Home() {
                   {
                     role: "system",
                     content:
-                      'You are a movie recommendation assistant. The user will ask for a recommendation. You must reply ONLY with a JSON array of up to 4 exact movie titles that match the query. Do not include markdown formatting, explanations, or any other text. Example: ["Inception", "Interstellar"]',
+                      `You are a movie recommendation assistant. ${getBehavioralContext()}The user will ask for a recommendation. You must reply ONLY with a JSON array of up to 4 exact movie titles that match the query. Do not include markdown formatting, explanations, or any other text. Example: ["Inception", "Interstellar"]`,
                   },
                   { role: "user", content: text },
                 ],
