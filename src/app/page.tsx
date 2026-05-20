@@ -311,6 +311,64 @@ const prompts = [
 
 const searchCache = new Map<string, TmdbMovie[]>();
 
+let cachedRegion: string | null = null;
+async function getUserRegion() {
+  if (cachedRegion) return cachedRegion;
+  try {
+    const res = await fetch("https://ipapi.co/json/");
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    cachedRegion = data.country_code || data.country || "US";
+  } catch (e) {
+    try {
+      const res2 = await fetch("https://ipinfo.io/json");
+      const data2 = await res2.json();
+      cachedRegion = data2.country || "US";
+    } catch (e2) {
+      cachedRegion = "US";
+    }
+  }
+  return cachedRegion;
+}
+
+function trackUserAction(genres: string[], weight: number = 1) {
+  if (typeof window === "undefined") return;
+  try {
+    const profileStr = localStorage.getItem("ztube_profile");
+    const profile = profileStr ? JSON.parse(profileStr) : { genreWeights: {} };
+    genres.forEach((genre) => {
+      profile.genreWeights[genre] = (profile.genreWeights[genre] || 0) + weight;
+    });
+    localStorage.setItem("ztube_profile", JSON.stringify(profile));
+  } catch (e) {}
+}
+
+function getTopGenres(count: number = 2): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const profileStr = localStorage.getItem("ztube_profile");
+    if (!profileStr) return "";
+    const profile = JSON.parse(profileStr);
+    const sorted = Object.entries(profile.genreWeights)
+      .sort((a: any, b: any) => b[1] - a[1])
+      .slice(0, count)
+      .map((entry) => entry[0] as string);
+      
+    const ids = sorted
+      .map((name) => {
+        for (const [id, val] of tmdbGenreMap.entries()) {
+          if (val === name) return id;
+        }
+        return null;
+      })
+      .filter(Boolean);
+      
+    return ids.join(",");
+  } catch (e) {
+    return "";
+  }
+}
+
 function Icon({ name }: { name: "play" | "spark" | "heart" | "share" | "bookmark" | "film" | "chat" | "send" | "x" | "sound" | "mute" }) {
   const common = "h-5 w-5";
   if (name === "play") return <span className={common}>▶</span>;
@@ -321,8 +379,20 @@ function Icon({ name }: { name: "play" | "spark" | "heart" | "share" | "bookmark
   if (name === "chat") return <span className={common}>◐</span>;
   if (name === "send") return <span className={common}>➤</span>;
   if (name === "x") return <span className={common}>×</span>;
-  if (name === "sound") return <span className={common}>♪</span>;
-  if (name === "mute") return <span className={common}>⌁</span>;
+  if (name === "sound") {
+    return (
+      <svg className={common} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+      </svg>
+    );
+  }
+  if (name === "mute") {
+    return (
+      <svg className={common} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 9.75 19.5 12m0 0 2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6 4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
+      </svg>
+    );
+  }
   return <span className={common}>▰</span>;
 }
 
@@ -339,9 +409,20 @@ export default function Home() {
   const [active, setActive] = useState(0);
   const [expanded, setExpanded] = useState<number | null>(null);
   const [liked, setLiked] = useState<number | null>(null);
-  const [soundOn, setSoundOn] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
   const [selected, setSelected] = useState<Movie | null>(null);
   const [watching, setWatching] = useState<Movie | null>(null);
+
+  const handleWatch = useCallback((movie: Movie) => {
+    setWatching(movie);
+    trackUserAction(movie.genres, 3);
+  }, []);
+
+  const handleLike = useCallback((movie: Movie) => {
+    setLiked(movie.id);
+    trackUserAction(movie.genres, 2);
+  }, []);
+
   const [gptSuggestions, setGptSuggestions] = useState<Movie[]>(fallbackMovies.slice(0, 3));
   const [messages, setMessages] = useState([
     {
@@ -402,14 +483,47 @@ export default function Home() {
       }
 
       try {
-        const popular = await tmdbFetch<{ page: number; total_pages: number; results: TmdbMovie[] }>(
-          `/trending/all/day?language=en-US&page=${page}`,
-          token,
-        );
-        const hydratedMovies = await hydrateTmdbMovies(popular.results, token, page * 12);
+        const region = await getUserRegion();
+        const topGenres = getTopGenres(2);
+        const fetchPage = mode === "replace" ? Math.floor(Math.random() * 5) + 1 : page;
+        const genreParam = topGenres ? `&with_genres=${topGenres}` : "";
+
+        const [trendingRes, discoverMoviesRes, discoverTvRes] = await Promise.all([
+          tmdbFetch<{ page: number; total_pages: number; results: TmdbMovie[] }>(
+            `/trending/all/day?language=en-US&page=${fetchPage}`,
+            token,
+          ),
+          tmdbFetch<{ page: number; total_pages: number; results: TmdbMovie[] }>(
+            `/discover/movie?language=en-US&sort_by=popularity.desc&page=${fetchPage}&region=${region}${genreParam}`,
+            token,
+          ),
+          tmdbFetch<{ page: number; total_pages: number; results: TmdbMovie[] }>(
+            `/discover/tv?language=en-US&sort_by=popularity.desc&page=${fetchPage}&with_origin_country=${region}${genreParam}`,
+            token,
+          ),
+        ]);
+
+        const combinedResults: TmdbMovie[] = [];
+        const maxLen = Math.max(trendingRes.results.length, discoverMoviesRes.results.length, discoverTvRes.results.length);
+        for (let i = 0; i < maxLen; i++) {
+          if (trendingRes.results[i]) combinedResults.push(trendingRes.results[i]);
+          if (discoverMoviesRes.results[i]) combinedResults.push({ ...discoverMoviesRes.results[i], media_type: "movie" });
+          if (discoverTvRes.results[i]) combinedResults.push({ ...discoverTvRes.results[i], media_type: "tv" });
+        }
+
+        const uniqueResults: TmdbMovie[] = [];
+        const seenIds = new Set();
+        for (const m of combinedResults) {
+          if (!seenIds.has(m.id)) {
+            seenIds.add(m.id);
+            uniqueResults.push(m);
+          }
+        }
+
+        const hydratedMovies = await hydrateTmdbMovies(uniqueResults, token, fetchPage * 12);
         if (!hydratedMovies.length) {
-          setTmdbPage(popular.page);
-          setHasMoreReels(popular.page < popular.total_pages);
+          setTmdbPage(fetchPage);
+          setHasMoreReels(fetchPage < trendingRes.total_pages);
           return;
         }
 
@@ -418,8 +532,8 @@ export default function Home() {
           const existingIds = new Set(current.map((movie) => movie.id));
           return [...current, ...hydratedMovies.filter((movie) => !existingIds.has(movie.id))];
         });
-        setTmdbPage(popular.page);
-        setHasMoreReels(popular.page < popular.total_pages);
+        setTmdbPage(fetchPage);
+        setHasMoreReels(fetchPage < trendingRes.total_pages);
         setTmdbStatus("live");
       } catch (error) {
         console.error(error);
@@ -616,7 +730,7 @@ export default function Home() {
             <article
               key={movie.id}
               className="relative h-svh snap-start overflow-hidden"
-              onDoubleClick={() => setLiked(movie.id)}
+              onDoubleClick={() => handleLike(movie)}
             >
               <div className="absolute inset-0">
                 <Image
@@ -644,7 +758,7 @@ export default function Home() {
                   className="absolute inset-0 h-full w-full scale-105 object-cover opacity-70 blur-[1px] transition duration-700"
                   src={movie.trailer}
                   poster={movie.backdrop}
-                  muted
+                  muted={!soundOn}
                   loop
                   playsInline
                 />
@@ -669,13 +783,6 @@ export default function Home() {
                 </button>
               </div>
 
-              <button
-                onClick={() => setSoundOn((current) => !current)}
-                className="absolute right-4 top-24 z-20 grid h-12 w-12 place-items-center rounded-full border border-white/15 bg-black/30 shadow-xl backdrop-blur-2xl transition active:scale-90"
-                aria-label={soundOn ? "Mute trailer sound" : "Play trailer sound"}
-              >
-                <Icon name={soundOn ? "sound" : "mute"} />
-              </button>
 
               {isLoadingMovies && index === 0 && (
                 <div className="absolute left-5 top-24 z-20 rounded-full border border-white/10 bg-black/35 px-4 py-2 text-xs font-semibold text-white/70 backdrop-blur-2xl">
@@ -683,18 +790,7 @@ export default function Home() {
                 </div>
               )}
 
-              <div className="absolute right-4 top-1/2 z-20 flex -translate-y-1/2 flex-col items-center gap-4">
-                {(["heart", "share", "bookmark"] as const).map((name) => (
-                  <button
-                    key={name}
-                    onClick={() => name === "heart" && setLiked(movie.id)}
-                    className="grid h-12 w-12 place-items-center rounded-full border border-white/15 bg-black/25 shadow-xl backdrop-blur-2xl transition active:scale-90"
-                    aria-label={name}
-                  >
-                    <Icon name={name} />
-                  </button>
-                ))}
-              </div>
+
 
               {liked === movie.id && (
                 <div className="pointer-events-none absolute inset-0 z-30 grid place-items-center">
@@ -753,7 +849,7 @@ export default function Home() {
                   <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
                     <button
                       onClick={() => {
-                        setWatching(movie);
+                        handleWatch(movie);
                       }}
                       className="rounded-full bg-white px-4 py-3 text-sm font-black text-black transition active:scale-[.98]"
                     >
@@ -904,7 +1000,7 @@ export default function Home() {
                     <p className="mt-2 line-clamp-2 text-sm leading-5 text-white/68">{movie.why}</p>
                     <div className="mt-3 flex gap-2">
                       <button
-                        onClick={() => setWatching(movie)}
+                        onClick={() => handleWatch(movie)}
                         className="rounded-full bg-white px-4 py-2 text-xs font-black text-black transition active:scale-95"
                       >
                         <span className="inline-flex items-center gap-1.5">
@@ -967,7 +1063,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => {
-                      setWatching(movie);
+                      handleWatch(movie);
                       setInput("");
                       setLiveSuggestions([]);
                     }}
@@ -1058,7 +1154,7 @@ export default function Home() {
                 </div>
                 <p className="mt-6 text-lg leading-8 text-white/74">{selected.description}</p>
                 <button
-                  onClick={() => setWatching(selected)}
+                  onClick={() => handleWatch(selected)}
                   className="mt-5 rounded-full bg-white px-5 py-3 text-sm font-black text-black shadow-2xl shadow-white/10 transition active:scale-[.98]"
                 >
                   <span className="inline-flex items-center gap-2">
@@ -1129,7 +1225,7 @@ export default function Home() {
       {watching && (
         <div className="fixed inset-0 z-[60] bg-black">
           <iframe
-            src={`https://www.vidking.net/embed/${watching.type}/${watching.id}${watching.type === "tv" ? "/1/1" : ""}`}
+            src={`https://www.vidking.net/embed/${watching.type}/${watching.id}${watching.type === "tv" ? "/1/1" : ""}?color=a855f7&autoPlay=true&nextEpisode=true&episodeSelector=true`}
             title={`Watch ${watching.title}`}
             allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
             allowFullScreen
