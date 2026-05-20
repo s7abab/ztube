@@ -309,6 +309,8 @@ const prompts = [
   "Feel-good movies for night",
 ];
 
+const searchCache = new Map<string, TmdbMovie[]>();
+
 function Icon({ name }: { name: "play" | "spark" | "heart" | "share" | "bookmark" | "film" | "chat" | "send" | "x" | "sound" | "mute" }) {
   const common = "h-5 w-5";
   if (name === "play") return <span className={common}>▶</span>;
@@ -503,11 +505,16 @@ export default function Home() {
     const timeout = window.setTimeout(async () => {
       try {
         setIsLoadingSuggestions(true);
-        const search = await tmdbFetch<{ results: TmdbMovie[] }>(
-          `/search/multi?query=${encodeURIComponent(query)}&include_adult=false&language=en-US&page=1`,
-          token,
-        );
-        const suggestions = search.results
+        let results = searchCache.get(query);
+        if (!results) {
+          const search = await tmdbFetch<{ results: TmdbMovie[] }>(
+            `/search/multi?query=${encodeURIComponent(query)}&include_adult=false&language=en-US&page=1`,
+            token,
+          );
+          results = search.results;
+          searchCache.set(query, results);
+        }
+        const suggestions = results
           .filter((m) => m.media_type !== "person" && m.poster_path && m.backdrop_path)
           .slice(0, 5)
           .map((m, index) => mapBasicTmdbMovie(m, index));
@@ -524,7 +531,7 @@ export default function Home() {
           setIsLoadingSuggestions(false);
         }
       }
-    }, 350);
+    }, 200);
 
     return () => {
       cancelled = true;
@@ -544,11 +551,16 @@ export default function Home() {
 
     try {
       if (token) {
-        const search = await tmdbFetch<{ results: TmdbMovie[] }>(
-          `/search/multi?query=${encodeURIComponent(text)}&include_adult=false&language=en-US&page=1`,
-          token,
-        );
-        const detailedMovies = search.results
+        let results = searchCache.get(text);
+        if (!results) {
+          const search = await tmdbFetch<{ results: TmdbMovie[] }>(
+            `/search/multi?query=${encodeURIComponent(text)}&include_adult=false&language=en-US&page=1`,
+            token,
+          );
+          results = search.results;
+          searchCache.set(text, results);
+        }
+        const detailedMovies = results
           .filter((m) => m.media_type !== "person" && m.poster_path && m.backdrop_path)
           .slice(0, 20)
           .map((m, index) => mapBasicTmdbMovie(m, index));
