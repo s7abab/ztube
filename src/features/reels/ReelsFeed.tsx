@@ -62,14 +62,14 @@ export function ReelsFeed(props: ReelsFeedProps) {
                 src={`https://www.youtube.com/embed/${movie.trailerKey}?autoplay=1&mute=${props.soundOn ? "0" : "1"}&controls=0&loop=1&playlist=${movie.trailerKey}&playsinline=1&rel=0&modestbranding=1`}
                 title={`${movie.title} trailer reel`}
                 allow="autoplay; encrypted-media; picture-in-picture"
-                className="pointer-events-none absolute left-1/2 top-1/2 h-[120svh] w-[213svh] min-h-full min-w-full -translate-x-1/2 -translate-y-1/2 border-0 opacity-80"
+                className="pointer-events-none absolute left-1/2 top-1/2 h-[120svh] w-[213svh] min-h-full min-w-full -translate-x-1/2 -translate-y-1/2 border-0 opacity-100"
               />
             ) : !movie.trailerKey ? (
               <video
                 ref={(node) => {
                   props.videoRefs.current[index] = node;
                 }}
-                className="absolute inset-0 h-full w-full scale-105 object-cover opacity-70 blur-[1px] transition duration-700"
+                className="absolute inset-0 h-full w-full scale-105 object-cover transition duration-700"
                 src={movie.trailer}
                 poster={movie.backdrop}
                 muted={!props.soundOn}
@@ -77,7 +77,7 @@ export function ReelsFeed(props: ReelsFeedProps) {
                 playsInline
               />
             ) : null}
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.1)_0%,rgba(0,0,0,.38)_46%,rgba(0,0,0,.94)_100%)]" />
+
             <div className="absolute inset-x-0 top-0 flex items-center justify-between px-5 pt-[112px]">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[.32em] text-white/50">

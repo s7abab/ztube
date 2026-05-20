@@ -89,22 +89,26 @@ export function mapTmdbMovie(movie: TmdbMovieDetail, index: number): Movie {
   };
 }
 
-export async function hydrateTmdbMovies(movies: TmdbMovie[], token: string, offset = 0, requireTrailer = true) {
+export async function hydrateTmdbMovies(movies: TmdbMovie[], token: string, offset = 0, requireTrailer = false) {
+  const validMovies = movies
+    .filter((movie) => movie.poster_path && movie.backdrop_path)
+    .slice(0, 20);
+
+  // Deeply hydrate only the first 2 movies to dramatically reduce upfront API calls
   const detailedMovies = await Promise.all(
-    movies
-      .filter((movie) => movie.poster_path && movie.backdrop_path)
-      .slice(0, 20)
-      .map((movie) => {
-        const type = movie.media_type === "tv" || !!movie.name ? "tv" : "movie";
-        return tmdbFetch<TmdbMovieDetail>(
-          `/${type}/${movie.id}?language=en-US&append_to_response=videos,credits,watch/providers,similar`,
-          token,
-        );
-      }),
+    validMovies.slice(0, 2).map((movie) => {
+      const type = movie.media_type === "tv" || !!movie.name ? "tv" : "movie";
+      return tmdbFetch<TmdbMovieDetail>(
+        `/${type}/${movie.id}?language=en-US&append_to_response=videos,credits,watch/providers,similar`,
+        token,
+      );
+    }),
   );
-  return detailedMovies
-    .map((movie, index) => mapTmdbMovie(movie, index + offset))
-    .filter((movie) => !requireTrailer || movie.trailerKey);
+
+  const mappedDetailed = detailedMovies.map((movie, index) => mapTmdbMovie(movie, index + offset));
+  const mappedBasic = validMovies.slice(2).map((movie, index) => mapBasicTmdbMovie(movie, index + offset + 2));
+
+  return [...mappedDetailed, ...mappedBasic].filter((movie) => !requireTrailer || movie.trailerKey);
 }
 
 export function mapBasicTmdbMovie(movie: TmdbMovie, index: number): Movie {
