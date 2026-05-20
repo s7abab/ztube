@@ -108,7 +108,10 @@ export function ReelsFeed(props: ReelsFeedProps) {
               </div>
             )}
 
-            <div className="absolute inset-x-0 bottom-6 z-10 px-4 sm:mx-auto sm:max-w-md">
+            <div 
+              className={`absolute inset-x-0 bottom-6 z-10 px-4 sm:mx-auto sm:max-w-md transition-opacity duration-700 ${props.active === index ? "opacity-100" : "opacity-0 pointer-events-none"}`}
+              style={{ transitionDelay: props.active === index ? "10s" : "0s" }}
+            >
               <div className="glass-panel reel-card rounded-[2rem] p-4 shadow-2xl shadow-black/50">
                 <div className="flex gap-3">
                   <Image
@@ -156,19 +159,16 @@ export function ReelsFeed(props: ReelsFeedProps) {
                     ? movie.description
                     : `${movie.description.slice(0, 88)}...`}
                 </button>
-                <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+                <div className="mt-4 grid gap-2">
                   <button
                     onClick={() => {
                       props.handleWatch(movie);
                     }}
                     className="rounded-full bg-white px-4 py-3 text-sm font-black text-black transition active:scale-[.98]"
                   >
-                    <span className="inline-flex items-center gap-2">
+                    <span className="flex items-center justify-center gap-2">
                       <Icon name="play" /> Watch
                     </span>
-                  </button>
-                  <button className="rounded-full border border-white/15 bg-white/10 px-4 py-3 text-sm font-bold backdrop-blur-xl transition active:scale-[.98]">
-                    + Watchlist
                   </button>
                 </div>
               </div>
