@@ -29,12 +29,14 @@ export function ReelsFeed(props: ReelsFeedProps) {
   if (!props.isVisible) return null;
 
   useEffect(() => {
-    const iframe = document.querySelector(".reel-video-container iframe") as HTMLIFrameElement | null;
+    const iframe = document.querySelector(
+      ".reel-video-container iframe",
+    ) as HTMLIFrameElement | null;
     if (iframe && iframe.contentWindow) {
       const command = props.soundOn ? "unMute" : "mute";
       iframe.contentWindow.postMessage(
         JSON.stringify({ event: "command", func: command, args: "" }),
-        "*"
+        "*",
       );
     }
   }, [props.soundOn, props.active]);
@@ -44,7 +46,9 @@ export function ReelsFeed(props: ReelsFeedProps) {
       <div
         className="h-svh snap-y snap-mandatory overflow-y-auto overscroll-contain"
         onScroll={(event) => {
-          const next = Math.round(event.currentTarget.scrollTop / window.innerHeight);
+          const next = Math.round(
+            event.currentTarget.scrollTop / window.innerHeight,
+          );
           props.setActive(Math.min(Math.max(next, 0), props.movies.length - 1));
           if (next >= props.movies.length - 3) {
             props.loadTmdbReelsPage(props.tmdbPage + 1, "append");
@@ -100,7 +104,9 @@ export function ReelsFeed(props: ReelsFeedProps) {
                       ? "Add API key"
                       : "Fallback Reels"}
                 </p>
-                <h1 className="mt-1 text-2xl font-black tracking-tight">Z Tube</h1>
+                <h1 className="mt-1 text-2xl font-black tracking-tight">
+                  Z Tube
+                </h1>
               </div>
             </div>
 
@@ -116,7 +122,7 @@ export function ReelsFeed(props: ReelsFeedProps) {
               </div>
             )}
 
-            <div 
+            <div
               className={`absolute inset-x-0 bottom-8 z-10 px-6 max-w-5xl mx-auto w-full transition-opacity duration-300 ${props.active === index ? "opacity-100" : "opacity-0 pointer-events-none"}`}
             >
               <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -125,7 +131,10 @@ export function ReelsFeed(props: ReelsFeedProps) {
                     {movie.title}
                   </h2>
                   <p className="mt-1.5 text-sm font-semibold text-white/80 drop-shadow-[0_1.5px_4px_rgba(0,0,0,0.7)]">
-                    {movie.year} · {movie.genres.join(" / ")} · <span className="text-emerald-400 font-bold">{movie.rating} ZTube</span>
+                    {movie.year} · {movie.genres.join(" / ")} ·{" "}
+                    <span className="text-emerald-400 font-bold">
+                      {movie.rating} ZTube
+                    </span>
                   </p>
                   <p className="mt-2 text-sm text-white/70 line-clamp-2 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
                     {movie.hook}
