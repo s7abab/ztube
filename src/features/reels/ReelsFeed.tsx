@@ -77,10 +77,7 @@ export function ReelsFeed(props: ReelsFeedProps) {
                 playsInline
               />
             ) : null}
-            <div 
-              className={`pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0)_0%,rgba(0,0,0,.6)_70%,rgba(0,0,0,.95)_100%)] transition-opacity duration-700 ${props.active === index ? "opacity-100" : "opacity-0"}`}
-              style={{ transitionDelay: props.active === index ? "10s" : "0s" }}
-            />
+
             <div className="absolute inset-x-0 top-0 flex items-center justify-between px-5 pt-[112px]">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[.32em] text-white/50">
@@ -91,20 +88,6 @@ export function ReelsFeed(props: ReelsFeedProps) {
                       : "Fallback Reels"}
                 </p>
                 <h1 className="mt-1 text-2xl font-black tracking-tight">Z Tube</h1>
-              </div>
-              <div className="flex flex-col items-end gap-3">
-                <button
-                  onClick={() => props.openDetails(movie)}
-                  className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold shadow-2xl shadow-black/40 backdrop-blur-2xl transition hover:bg-white/20"
-                >
-                  Details
-                </button>
-                <button
-                  onClick={props.toggleSound}
-                  className="grid h-10 w-10 place-items-center rounded-full border border-white/15 bg-black/40 text-white shadow-2xl backdrop-blur-2xl transition hover:bg-white/20"
-                >
-                  <Icon name={props.soundOn ? "sound" : "mute"} />
-                </button>
               </div>
             </div>
 
@@ -121,66 +104,38 @@ export function ReelsFeed(props: ReelsFeedProps) {
             )}
 
             <div 
-              className={`absolute inset-x-0 bottom-6 z-10 px-4 sm:mx-auto sm:max-w-md transition-opacity duration-700 ${props.active === index ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-              style={{ transitionDelay: props.active === index ? "10s" : "0s" }}
+              className={`absolute inset-x-0 bottom-8 z-10 px-6 max-w-5xl mx-auto w-full transition-opacity duration-300 ${props.active === index ? "opacity-100" : "opacity-0 pointer-events-none"}`}
             >
-              <div className="glass-panel reel-card rounded-[2rem] p-4 shadow-2xl shadow-black/50">
-                <div className="flex gap-3">
-                  <Image
-                    src={movie.poster}
-                    alt=""
-                    width={128}
-                    height={192}
-                    className="h-24 w-16 rounded-2xl object-cover shadow-lg"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h2 className="text-2xl font-black leading-none tracking-tight">
-                          {movie.title}
-                        </h2>
-                        <p className="mt-1 text-sm text-white/62">
-                          {movie.year} · {movie.genres.join(" / ")}
-                        </p>
-                      </div>
-                      <span className="rounded-full bg-emerald-300 px-2.5 py-1 text-xs font-black text-black">
-                        {movie.rating}
-                      </span>
-                    </div>
-                    <p className="mt-3 text-sm font-medium text-white/88">{movie.hook}</p>
-                  </div>
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div className="min-w-0 max-w-xl text-left">
+                  <h2 className="text-3xl font-black tracking-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
+                    {movie.title}
+                  </h2>
+                  <p className="mt-1.5 text-sm font-semibold text-white/80 drop-shadow-[0_1.5px_4px_rgba(0,0,0,0.7)]">
+                    {movie.year} · {movie.genres.join(" / ")} · <span className="text-emerald-400 font-bold">{movie.rating} ZTube</span>
+                  </p>
+                  <p className="mt-2 text-sm text-white/70 line-clamp-2 drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]">
+                    {movie.hook}
+                  </p>
                 </div>
-                <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
-                  <span className="shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-xs text-white/75">
-                    Popularity {movie.popularity}
-                  </span>
-                  {movie.providers.map((provider) => (
-                    <span
-                      key={provider}
-                      className="shrink-0 rounded-full border border-white/10 bg-white/8 px-3 py-1.5 text-xs text-white/75"
-                    >
-                      {provider}
-                    </span>
-                  ))}
-                </div>
-                <button
-                  onClick={() => props.setExpanded(props.expanded === movie.id ? null : movie.id)}
-                  className="mt-3 text-left text-[13px] leading-snug text-white/70 transition-all duration-300 active:text-white"
-                >
-                  {props.expanded === movie.id
-                    ? movie.description
-                    : `${movie.description.slice(0, 88)}...`}
-                </button>
-                <div className="mt-4 grid gap-2">
+                <div className="flex items-center gap-2.5 shrink-0">
                   <button
-                    onClick={() => {
-                      props.handleWatch(movie);
-                    }}
-                    className="rounded-full bg-white px-4 py-3 text-sm font-black text-black transition active:scale-[.98]"
+                    onClick={() => props.handleWatch(movie)}
+                    className="flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-black shadow-2xl hover:scale-[1.03] active:scale-[.98] transition duration-300"
                   >
-                    <span className="flex items-center justify-center gap-2">
-                      <Icon name="play" /> Watch
-                    </span>
+                    <Icon name="play" /> Watch
+                  </button>
+                  <button
+                    onClick={() => props.openDetails(movie)}
+                    className="rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-semibold text-white shadow-2xl backdrop-blur-xl hover:bg-white/20 active:scale-[.98] transition duration-300"
+                  >
+                    Details
+                  </button>
+                  <button
+                    onClick={props.toggleSound}
+                    className="grid h-11 w-11 place-items-center rounded-full border border-white/15 bg-black/40 text-white shadow-2xl backdrop-blur-xl hover:bg-white/20 active:scale-[.98] transition duration-300"
+                  >
+                    <Icon name={props.soundOn ? "sound" : "mute"} />
                   </button>
                 </div>
               </div>
