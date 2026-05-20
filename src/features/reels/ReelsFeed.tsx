@@ -77,7 +77,10 @@ export function ReelsFeed(props: ReelsFeedProps) {
                 playsInline
               />
             ) : null}
-
+            <div 
+              className={`pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,0)_0%,rgba(0,0,0,.6)_70%,rgba(0,0,0,.95)_100%)] transition-opacity duration-700 ${props.active === index ? "opacity-100" : "opacity-0"}`}
+              style={{ transitionDelay: props.active === index ? "10s" : "0s" }}
+            />
             <div className="absolute inset-x-0 top-0 flex items-center justify-between px-5 pt-[112px]">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[.32em] text-white/50">
