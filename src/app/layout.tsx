@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "ztube | Cinematic Movie Discovery",
-  description: "A mobile-first TMDB-powered movie discovery app with reels and AI recommendations.",
+  description: "A mobile-first ZTube movie discovery app with reels and AI recommendations.",
 };
 
 export default function RootLayout({
