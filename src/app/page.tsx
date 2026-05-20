@@ -489,10 +489,10 @@ export default function Home() {
         isVisible={tab === "chat"}
       />
 
-      <nav className="fixed inset-x-0 top-2 sm:top-4 z-50 mx-auto grid w-[min(90vw,18rem)] grid-cols-2 gap-1 rounded-full border border-white/10 bg-black/50 p-1.5 shadow-2xl shadow-purple-900/10 backdrop-blur-3xl transition-all duration-500 hover:bg-black/60 hover:shadow-purple-900/20">
+      <nav className="fixed inset-x-0 top-2 sm:top-4 z-50 mx-auto grid w-[min(92vw,24rem)] grid-cols-2 gap-1 rounded-full border border-white/10 bg-black/50 p-1.5 shadow-2xl shadow-purple-900/10 backdrop-blur-3xl transition-all duration-500 hover:bg-black/60 hover:shadow-purple-900/20">
         {[
           ["reels", "Reels", "film"],
-          ["chat", "Chat", "chat"],
+          ["chat", "Super Search", "zap"],
         ].map(([value, label, icon]) => (
           <button
             key={value}
@@ -503,7 +503,7 @@ export default function Home() {
                 : "text-white/60 hover:bg-white/10 hover:text-white"
             }`}
           >
-            <span className={`scale-90 ${tab === value ? "opacity-100" : "opacity-80"}`}><Icon name={icon as "film" | "chat"} /></span>
+            <span className={`scale-90 ${tab === value ? "opacity-100" : "opacity-80"}`}><Icon name={icon as "film" | "zap"} /></span>
             {label}
           </button>
         ))}

@@ -10,12 +10,13 @@ import {
   X,
   Volume2,
   VolumeX,
+  Zap,
 } from "lucide-react";
 
 export function Icon({
   name,
 }: {
-  name: "play" | "spark" | "heart" | "share" | "bookmark" | "film" | "chat" | "send" | "x" | "sound" | "mute";
+  name: "play" | "spark" | "heart" | "share" | "bookmark" | "film" | "chat" | "send" | "x" | "sound" | "mute" | "zap";
 }) {
   const common = "h-5 w-5";
   
@@ -42,6 +43,8 @@ export function Icon({
       return <Volume2 className={common} />;
     case "mute":
       return <VolumeX className={common} />;
+    case "zap":
+      return <Zap className={common} />;
     default:
       return null;
   }
