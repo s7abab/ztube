@@ -20,6 +20,7 @@ type Movie = {
   cast: string[];
   why: string;
   similar: string[];
+  type: "movie" | "tv";
 };
 
 type TmdbMovie = {
@@ -34,6 +35,7 @@ type TmdbMovie = {
   overview?: string;
   poster_path?: string;
   backdrop_path?: string;
+  media_type?: "movie" | "tv" | "person";
 };
 
 type TmdbMovieDetail = TmdbMovie & {
@@ -47,6 +49,7 @@ type TmdbMovieDetail = TmdbMovie & {
 const fallbackMovies: Movie[] = [
   {
     id: 1,
+    type: "movie",
     title: "Dune: Part Two",
     year: "2024",
     genres: ["Sci-Fi", "Adventure"],
@@ -68,6 +71,7 @@ const fallbackMovies: Movie[] = [
   },
   {
     id: 2,
+    type: "movie",
     title: "Challengers",
     year: "2024",
     genres: ["Drama", "Romance"],
@@ -89,6 +93,7 @@ const fallbackMovies: Movie[] = [
   },
   {
     id: 3,
+    type: "movie",
     title: "Civil War",
     year: "2024",
     genres: ["War", "Thriller"],
@@ -110,6 +115,7 @@ const fallbackMovies: Movie[] = [
   },
   {
     id: 4,
+    type: "movie",
     title: "The Creator",
     year: "2023",
     genres: ["Sci-Fi", "Action"],
@@ -195,6 +201,8 @@ async function tmdbFetch<T>(path: string, token: string): Promise<T> {
 }
 
 function mapTmdbMovie(movie: TmdbMovieDetail, index: number): Movie {
+  const isTv = movie.media_type === "tv" || !!movie.name;
+  const type = isTv ? "tv" : "movie";
   const genres =
     movie.genres?.map((genre) => genre.name).slice(0, 3) ||
     movie.genre_ids
@@ -214,8 +222,9 @@ function mapTmdbMovie(movie: TmdbMovieDetail, index: number): Movie {
     .map((provider) => provider.provider_name)
     .filter((provider, providerIndex, all) => all.indexOf(provider) === providerIndex)
     .slice(0, 3);
-  const mappedMovie = {
+  const mappedMovie: Movie = {
     id: movie.id,
+    type,
     title,
     year,
     genres: genres.length ? genres : ["Cinema"],
@@ -243,12 +252,13 @@ async function hydrateTmdbMovies(movies: TmdbMovie[], token: string, offset = 0,
     movies
       .filter((movie) => movie.poster_path && movie.backdrop_path)
       .slice(0, 20)
-      .map((movie) =>
-        tmdbFetch<TmdbMovieDetail>(
-          `/movie/${movie.id}?language=en-US&append_to_response=videos,credits,watch/providers,similar`,
+      .map((movie) => {
+        const type = movie.media_type === "tv" || !!movie.name ? "tv" : "movie";
+        return tmdbFetch<TmdbMovieDetail>(
+          `/${type}/${movie.id}?language=en-US&append_to_response=videos,credits,watch/providers,similar`,
           token,
-        ),
-      ),
+        );
+      }),
   );
   return detailedMovies
     .map((movie, index) => mapTmdbMovie(movie, index + offset))
@@ -256,6 +266,8 @@ async function hydrateTmdbMovies(movies: TmdbMovie[], token: string, offset = 0,
 }
 
 function mapBasicTmdbMovie(movie: TmdbMovie, index: number): Movie {
+  const isTv = movie.media_type === "tv" || !!movie.name;
+  const type = isTv ? "tv" : "movie";
   const genres =
     movie.genre_ids
       ?.map((id) => tmdbGenreMap.get(id))
@@ -264,8 +276,9 @@ function mapBasicTmdbMovie(movie: TmdbMovie, index: number): Movie {
   const title = movie.title || movie.name || "Untitled";
   const year = (movie.release_date || movie.first_air_date || "2026").slice(0, 4);
 
-  const mappedMovie = {
+  const mappedMovie: Movie = {
     id: movie.id,
+    type,
     title,
     year,
     genres: genres.length ? genres : ["Cinema"],
@@ -355,7 +368,7 @@ export default function Home() {
     setIsOpeningDetails(true);
     try {
       const detail = await tmdbFetch<TmdbMovieDetail>(
-        `/movie/${movie.id}?language=en-US&append_to_response=videos,credits,watch/providers,similar`,
+        `/${movie.type}/${movie.id}?language=en-US&append_to_response=videos,credits,watch/providers,similar`,
         token,
       );
       const fullMovie = mapTmdbMovie(detail, 0);
@@ -388,7 +401,7 @@ export default function Home() {
 
       try {
         const popular = await tmdbFetch<{ page: number; total_pages: number; results: TmdbMovie[] }>(
-          `/movie/popular?language=en-US&page=${page}&region=US`,
+          `/trending/all/day?language=en-US&page=${page}`,
           token,
         );
         const hydratedMovies = await hydrateTmdbMovies(popular.results, token, page * 12);
@@ -455,7 +468,7 @@ export default function Home() {
       const token = process.env.NEXT_PUBLIC_TMDB_API_KEY;
       if (token) {
         tmdbFetch<TmdbMovieDetail>(
-          `/movie/${currentMovie.id}?language=en-US&append_to_response=videos,credits,watch/providers,similar`,
+          `/${currentMovie.type}/${currentMovie.id}?language=en-US&append_to_response=videos,credits,watch/providers,similar`,
           token,
         )
           .then((detail) => {
@@ -491,11 +504,11 @@ export default function Home() {
       try {
         setIsLoadingSuggestions(true);
         const search = await tmdbFetch<{ results: TmdbMovie[] }>(
-          `/search/movie?query=${encodeURIComponent(query)}&include_adult=false&language=en-US&page=1`,
+          `/search/multi?query=${encodeURIComponent(query)}&include_adult=false&language=en-US&page=1`,
           token,
         );
         const suggestions = search.results
-          .filter((m) => m.poster_path && m.backdrop_path)
+          .filter((m) => m.media_type !== "person" && m.poster_path && m.backdrop_path)
           .slice(0, 5)
           .map((m, index) => mapBasicTmdbMovie(m, index));
         if (!cancelled) {
@@ -532,11 +545,11 @@ export default function Home() {
     try {
       if (token) {
         const search = await tmdbFetch<{ results: TmdbMovie[] }>(
-          `/search/movie?query=${encodeURIComponent(text)}&include_adult=false&language=en-US&page=1`,
+          `/search/multi?query=${encodeURIComponent(text)}&include_adult=false&language=en-US&page=1`,
           token,
         );
         const detailedMovies = search.results
-          .filter((m) => m.poster_path && m.backdrop_path)
+          .filter((m) => m.media_type !== "person" && m.poster_path && m.backdrop_path)
           .slice(0, 20)
           .map((m, index) => mapBasicTmdbMovie(m, index));
         if (detailedMovies.length) {
@@ -1104,7 +1117,7 @@ export default function Home() {
       {watching && (
         <div className="fixed inset-0 z-[60] bg-black">
           <iframe
-            src={`https://www.vidking.net/embed/movie/${watching.id}`}
+            src={`https://www.vidking.net/embed/${watching.type}/${watching.id}${watching.type === "tv" ? "/1/1" : ""}`}
             title={`Watch ${watching.title}`}
             allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
             allowFullScreen
